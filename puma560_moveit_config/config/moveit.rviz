@@ -6,8 +6,11 @@ Panels:
       Expanded:
         - /MotionPlanning1
         - /InteractiveMarkers1
+        - /MarkerArray1
+        - /Marker1
+        - /Marker2
       Splitter Ratio: 0.5
-    Tree Height: 163
+    Tree Height: 177
   - Class: rviz_common/Help
     Name: Help
   - Class: rviz_common/Views
@@ -213,6 +216,45 @@ Visualization Manager:
       Show Descriptions: true
       Show Visual Aids: false
       Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: MarkerArray
+      Namespaces:
+        link_safety_stop: true
+        link_safety_warn: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /puma/link_safety_markers
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Marker
+      Namespaces:
+        safety_status: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /puma/status_marker
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Marker
+      Namespaces:
+        human: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /puma/human_marker
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -231,7 +273,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 3.798807382583618
+      Distance: 3.2354683876037598
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -246,15 +288,15 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4399999678134918
+      Pitch: 0.2550002336502075
       Target Frame: world
       Value: Orbit (rviz_default_plugins)
-      Yaw: 6.140195369720459
+      Yaw: 5.675206184387207
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 975
+  Height: 1016
   Help:
     collapsed: false
   Hide Left Dock: false
@@ -263,9 +305,9 @@ Window Geometry:
     collapsed: false
   MotionPlanning - Trajectory Slider:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000100000000000002b400000379fc0200000005fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000003f00fffffffb000000100044006900730070006c006100790073010000003b00000124000000c700fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000165000001930000016900fffffffb0000000800480065006c0070000000029a0000006e0000006e00fffffffb0000000a0056006900650077007301000002fe000000b6000000a000ffffff000001f60000037900000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000100000000000002b4000003a2fc0200000005fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000003f00fffffffb000000100044006900730070006c006100790073010000003b00000132000000c700fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000173000001a50000016900fffffffb0000000800480065006c0070000000029a0000006e0000006e00fffffffb0000000a00560069006500770073010000031e000000bf000000a000ffffff000004c6000003a200000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
-  Width: 1200
-  X: 457
-  Y: 40
+  Width: 1920
+  X: 0
+  Y: 27
