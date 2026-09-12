@@ -1,0 +1,391 @@
+<?xml version="1.0"?>
+<robot name="Puma560" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="use_mock_hardware" default="true"/>
+  <xacro:property name="mesh_dir" value="package://puma560_description/meshes"/>
+
+  <xacro:macro name="puma560_link_geometry" params="link_num">
+    <mesh filename="${mesh_dir}/puma_link${link_num}.stl" scale="${0.001*25.4} ${25.4*0.001} ${25.4*0.001}"/>
+  </xacro:macro>
+
+  <material name="blue">
+    <color rgba="0 0 0.8 0.8"/>
+  </material>
+
+  <material name="red">
+    <color rgba="0.8 0 0 0.8"/>
+  </material>
+
+  <material name="green">
+    <color rgba="0 0.8 0 0.8"/>
+  </material>
+
+  <xacro:property name="M_PI" value="3.14159265"/>
+
+  <!-- DH Paramaters -->
+  <xacro:property name="d_1" value="0.6718"/>
+  <xacro:property name="d_2" value="0.1501"/>
+  <xacro:property name="d_3" value="0"/>
+  <xacro:property name="d_4" value="0.4331"/>
+  <xacro:property name="d_5" value="0"/>
+  <xacro:property name="d_6" value="0.0558"/>
+
+  <xacro:property name="a_1" value="0"/>
+  <xacro:property name="a_2" value="0.4318"/>
+  <xacro:property name="a_3" value="-0.0203"/>
+  <xacro:property name="a_4" value="0"/>
+  <xacro:property name="a_5" value="0"/>
+  <xacro:property name="a_6" value="0"/>
+
+  <link name="world"/>
+
+  <joint name="world_to_link1" type="fixed">
+    <parent link="world"/>
+    <child link="link1"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="link1">
+    <visual>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="1"/>
+      </geometry>
+      <origin rpy="0 0 ${M_PI/2}"/>
+      <material name="green"/>
+    </visual>  
+    <collision>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="1"/>
+      </geometry>
+      <origin rpy="0 0 ${M_PI/2}"/>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <link name="link2">
+    <visual>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="2"/>
+      </geometry>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <material name="red"/>
+    </visual> 
+    <collision>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="2"/>
+      </geometry>
+      <origin rpy="0 0 ${M_PI/2}"/>
+    </collision> 
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <joint name="j1" type="revolute">
+    <parent link="link1"/>
+    <child link="link2"/>
+    <origin xyz="0 0 ${d_1}" rpy="${M_PI/2} 0 0"/>
+    <axis xyz="0 1 0"/> <!-- This is descibed in child frame -->
+    <limit effort="1000.0" lower="${-M_PI}" upper="${M_PI}" velocity="2.0"/>
+    <dynamics damping="1.0" friction="0.1"/>
+  </joint>
+  
+  <link name="link3">
+    <visual>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="3"/>
+      </geometry>
+      <origin xyz="0 0 ${0.0435+d_2}"/>
+      <material name="blue"/>
+    </visual>  
+    <collision>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="3"/>
+      </geometry>
+      <origin rpy="0 0 ${M_PI/2}"/>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <joint name="j2" type="revolute">
+    <parent link="link2"/>
+    <child link="link3"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/> <!-- This is descibed in child frame -->
+    <limit effort="1000.0" lower="${-M_PI/2}" upper="${M_PI/2}" velocity="2.0"/><dynamics damping="1.0" friction="0.1"/>
+  </joint>
+
+  <link name="link4">
+    <visual>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="4"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="green"/>
+    </visual>  
+    <collision>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="4"/>
+      </geometry>
+      <origin rpy="0 0 ${M_PI/2}"/>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <joint name="j3" type="revolute">
+    <parent link="link3"/>
+    <child link="link4"/>
+    <origin xyz="${a_2} ${a_3} ${d_2}" rpy="0 0 ${-M_PI/2}"/>
+    <axis xyz="0 0 1"/> <!-- This is descibed in child frame -->
+    <limit effort="1000.0" lower="${-M_PI/2}" upper="${M_PI/2}" velocity="2.0"/>
+    <dynamics damping="1.0" friction="0.1"/>
+  </joint>
+  
+  <link name="link5">
+    <visual>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="5"/>
+      </geometry>
+      <origin xyz="0 0 ${d_4-0.071}" rpy="0 0 ${M_PI/2}"/>
+      <material name="red"/>
+    </visual>  
+    <collision>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="5"/>
+      </geometry>
+      <origin rpy="0 0 ${M_PI/2}"/>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link> 
+
+  <joint name="j4" type="revolute">
+    <parent link="link4"/>
+    <child link="link5"/>
+    <origin xyz="0 0 0" rpy="${M_PI/2} 0 ${M_PI/2}"/>
+    <axis xyz="0 0 1"/> 
+    <limit effort="1000.0" lower="${-M_PI/2}" upper="${M_PI/2}" velocity="2.0"/>
+    <dynamics damping="1.0" friction="0.1"/>
+  </joint>
+
+  <link name="link6">
+    <visual>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="6"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="${M_PI} 0 ${M_PI/2}"/>
+      <material name="green"/>
+    </visual>  
+    <collision>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="6"/>
+      </geometry>
+      <origin rpy="0 0 ${M_PI/2}"/>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link> 
+
+  <joint name="j5" type="revolute">
+    <parent link="link5"/>
+    <child link="link6"/>
+    <origin xyz="0 0 ${d_4}" rpy="${M_PI/2} 0 0"/>
+    <axis xyz="0 0 1"/> 
+    <limit effort="1000.0" lower="${-M_PI/2}" upper="${M_PI/2}" velocity="2.0"/>
+    <dynamics damping="1.0" friction="0.1"/>
+  </joint>
+
+  <link name="link7">
+    <visual>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="7"/>
+      </geometry>
+      <origin xyz="0 0 -0.010" rpy="0 0 0"/>
+      <material name="blue"/>
+    </visual>  
+    <collision>
+      <geometry>
+        <xacro:puma560_link_geometry link_num="7"/>
+      </geometry>
+      <origin rpy="0 0 ${M_PI/2}"/>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+  </link> 
+
+  <joint name="j6" type="revolute">
+    <parent link="link6"/>
+    <child link="link7"/>
+    <origin xyz="0 ${d_6} 0" rpy="${-M_PI/2} 0 0"/>
+    <axis xyz="0 0 1"/> 
+    <limit effort="1000.0" lower="${-M_PI/2}" upper="${M_PI/2}" velocity="2.0"/>
+    <dynamics damping="1.0" friction="0.1"/>
+  </joint>
+
+<link name="tool0"/>
+
+<joint name="link7_to_tool0" type="fixed">
+  <parent link="link7"/>
+  <child link="tool0"/>
+  <origin xyz="0 0 0" rpy="0 0 0"/>
+</joint>
+
+  <!-- ros2_control block -->
+<!-- 
+ <ros2_control name="PumaSystem" type="system">
+    <hardware>
+      <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+    </hardware>
+
+    <joint name="j1">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="j2">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="j3">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="j4">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="j5">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="j6">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </ros2_control>
+-->
+  <ros2_control name="PumaSystem" type="system">
+  <hardware>
+    <xacro:if value="$(arg use_mock_hardware)">
+      <plugin>mock_components/GenericSystem</plugin>
+    </xacro:if>
+    <xacro:unless value="$(arg use_mock_hardware)">
+      <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+    </xacro:unless>
+  </hardware>
+
+  <joint name="j1">
+    <command_interface name="position"/>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+  <joint name="j2">
+    <command_interface name="position"/>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+  <joint name="j3">
+    <command_interface name="position"/>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+  <joint name="j4">
+    <command_interface name="position"/>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+  <joint name="j5">
+    <command_interface name="position"/>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+  <joint name="j6">
+    <command_interface name="position"/>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+</ros2_control>
+<xacro:unless value="$(arg use_mock_hardware)">
+  <gazebo>
+    <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
+      <parameters>$(find puma560_description)/config/controllers.yaml</parameters>
+    </plugin>
+  </gazebo>
+</xacro:unless>
+  <gazebo reference="link1">
+    <selfCollide>false</selfCollide>
+    <kp>100000</kp>
+    <kd>1</kd>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <gazebo reference="link2">
+    <selfCollide>false</selfCollide>
+    <kp>100000</kp>
+    <kd>1</kd>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <gazebo reference="link3">
+    <selfCollide>false</selfCollide>
+    <kp>100000</kp>
+    <kd>1</kd>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <gazebo reference="link4">
+    <selfCollide>false</selfCollide>
+    <kp>100000</kp>
+    <kd>1</kd>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <gazebo reference="link5">
+    <selfCollide>false</selfCollide>
+    <kp>100000</kp>
+    <kd>1</kd>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+  <gazebo reference="link6">
+    <selfCollide>false</selfCollide>
+    <kp>100000</kp>
+    <kd>1</kd>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+
+</robot>

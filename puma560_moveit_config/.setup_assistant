@@ -1,0 +1,26 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: puma560_description
+    relative_path: urdf/puma560_robot.urdf.xacro
+    xacro_args: use_mock_hardware:=true
+  srdf:
+    relative_path: config/Puma560.srdf
+  package_settings:
+    author_name: Emit
+    author_email: ""
+    generated_timestamp: 1775676795
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity

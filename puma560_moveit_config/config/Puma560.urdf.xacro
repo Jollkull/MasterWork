@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="Puma560">
+  <xacro:include filename="$(find puma560_description)/urdf/puma560_robot.urdf.xacro" />
+</robot>
