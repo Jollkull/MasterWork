@@ -3,10 +3,12 @@ import math
 import rclpy
 from rclpy.node import Node
 from rclpy.time import Time
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 
 import tf2_ros
 from geometry_msgs.msg import PointStamped
 from std_msgs.msg import Float64, String
+from control_msgs.msg import SpeedScalingFactor
 from visualization_msgs.msg import Marker, MarkerArray
 
 
@@ -47,9 +49,14 @@ class SafetyMonitorNode(Node):
             PointStamped, human_topic, self.human_position_callback, 10
         )
         self.status_pub = self.create_publisher(String, '/puma/safety_status', 10)
+        scaling_qos = QoSProfile(
+        reliability=ReliabilityPolicy.BEST_EFFORT,
+        durability=DurabilityPolicy.TRANSIENT_LOCAL,
+        depth=1,
+    )
         self.scaling_pub = self.create_publisher(
-            Float64, '/joint_trajectory_controller/speed_scaling_input', 10
-        )
+            SpeedScalingFactor, '/joint_trajectory_controller/speed_scaling_input', scaling_qos
+)
         self.min_distance_pub = self.create_publisher(
             Float64, '/puma/min_distance', 10
         )
@@ -130,7 +137,11 @@ class SafetyMonitorNode(Node):
             self.current_mode = mode
 
         self.status_pub.publish(String(data=mode))
-        self.scaling_pub.publish(Float64(data=scale))
+
+        scaling_msg = SpeedScalingFactor()
+        scaling_msg.factor = scale
+        self.scaling_pub.publish(scaling_msg)
+
         if min_dist is not None:
             self.min_distance_pub.publish(Float64(data=float(min_dist)))
 
