@@ -28,6 +28,12 @@ class SafetyMonitorNode(Node):
         self.declare_parameter('human_position_topic', '/puma/human_position')
         self.declare_parameter('status_text_frame', 'tool0')
         self.declare_parameter('status_text_z_offset', 0.3)
+        # Радиус объекта-человека, м. Детектор даёт центр объекта,
+        # а безопасность считается до его поверхности.
+        self.declare_parameter('human_radius', 0.25)
+        # Человек - вертикально вытянутый объект, поэтому разница высот
+        # между звеном и точкой детекции не должна увеличивать дистанцию.
+        self.declare_parameter('use_horizontal_distance', True)
 
         self.world_frame = self.get_parameter('world_frame').value
         self.link_names = self.get_parameter('link_names').value
@@ -91,11 +97,17 @@ class SafetyMonitorNode(Node):
         ):
             return None
 
-    @staticmethod
-    def distance(a, b):
-        return math.sqrt(
-            (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
-        )
+    def distance(self, a, b):
+        dx = a[0] - b[0]
+        dy = a[1] - b[1]
+        if self.get_parameter('use_horizontal_distance').value:
+            d = math.sqrt(dx * dx + dy * dy)
+        else:
+            dz = a[2] - b[2]
+            d = math.sqrt(dx * dx + dy * dy + dz * dz)
+        # Дистанция до поверхности объекта, а не до его центра
+        d -= self.get_parameter('human_radius').value
+        return max(d, 0.0)
 
     def tick(self):
         link_positions = {}

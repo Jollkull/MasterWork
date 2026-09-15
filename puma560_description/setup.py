@@ -20,6 +20,11 @@ setup(
         (os.path.join('share', package_name, 'meshes'), glob('meshes/*.stl', recursive=True)),
         # Конфиги
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
+        # Миры Gazebo
+        (os.path.join('share', package_name, 'worlds'), glob('worlds/*.sdf')),
+        # SDF-модели объектов сцены
+        (os.path.join('share', package_name, 'models', 'human_dummy'),
+            glob('models/human_dummy/*')),
 
     ],
     install_requires=['setuptools'],
