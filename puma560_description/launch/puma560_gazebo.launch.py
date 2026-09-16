@@ -7,6 +7,7 @@ from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -33,9 +34,10 @@ def generate_launch_description():
 
     # Xacro -> URDF, mock hardware OFF (мы хотим реальный Gazebo)
     robot_description = {
-        'robot_description': Command([
-            'xacro ', xacro_file, ' use_mock_hardware:=false'
-        ])
+        'robot_description': ParameterValue(
+            Command(['xacro ', xacro_file, ' use_mock_hardware:=false']),
+            value_type=str,
+        )
     }
 
     # --- Запуск Gazebo Harmonic через ros_gz_sim ---
@@ -75,8 +77,11 @@ def generate_launch_description():
         arguments=[
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
             '/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
+            '/camera/image@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/camera/depth_image@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/camera/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+            '/camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
         ],
-        output='screen',
     )
 
     # --- Спавнеры контроллеров (в Jazzy исполняемый файл называется 'spawner', без .py) ---

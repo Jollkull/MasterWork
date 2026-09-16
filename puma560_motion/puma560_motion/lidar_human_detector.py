@@ -19,7 +19,7 @@ class LidarHumanDetector(Node):
         super().__init__('lidar_human_detector')
 
         self.declare_parameter('scan_topic', '/scan')
-        self.declare_parameter('output_topic', '/puma/human_position')
+        self.declare_parameter('output_topic', '/puma/human_position_lidar')
         self.declare_parameter('world_frame', 'world')
         # Gazebo даёт своё имя фрейма (puma560/link1/safety_lidar),
         # которого нет в TF-дереве ROS2 - используем имя из URDF
@@ -264,6 +264,9 @@ class LidarHumanDetector(Node):
 
     @staticmethod
     def cluster_to_cartesian(cluster):
+        # Лидар видит только переднюю дугу объекта. Центр находится глубже
+        # ближайшей точки примерно на радиус, оценённый по хорде:
+        # для цилиндра ширина видимой дуги близка к диаметру.
         r = cluster['min_range'] + cluster['width'] / 2.0
         a = cluster['mid_angle']
         return r * math.cos(a), r * math.sin(a)

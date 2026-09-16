@@ -101,6 +101,34 @@ def generate_launch_description():
         ],
     )
 
+    # --- Детектор человека по камере глубины ---
+    camera_detector = TimerAction(
+        period=10.0,
+        actions=[
+            Node(
+                package='puma560_motion',
+                executable='camera_human_detector',
+                name='camera_human_detector',
+                output='screen',
+                parameters=[{'use_sim_time': True}],
+            )
+        ],
+    )
+
+    # --- Объединение данных сенсоров ---
+    fusion = TimerAction(
+        period=11.0,
+        actions=[
+            Node(
+                package='puma560_motion',
+                executable='sensor_fusion_node',
+                name='sensor_fusion_node',
+                output='screen',
+                parameters=[{'use_sim_time': True}],
+            )
+        ],
+    )
+
     # --- Монитор безопасности ---
     safety_monitor = TimerAction(
         period=10.0,
@@ -138,6 +166,8 @@ def generate_launch_description():
         lidar_frame_bridge,
         spawn_human,
         detector,
+        camera_detector,
+        fusion,
         safety_monitor,
         rviz,
     ])

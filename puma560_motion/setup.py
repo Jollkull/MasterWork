@@ -27,10 +27,12 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'camera_human_detector = puma560_motion.camera_human_detector:main',
             'lidar_human_detector = puma560_motion.lidar_human_detector:main',
             'safety_monitor_node = puma560_motion.safety_monitor_node:main',
             'human_position_stub = puma560_motion.human_position_stub:main',
             'experiment_logger_node = puma560_motion.experiment_logger_node:main',
+            'sensor_fusion_node = puma560_motion.sensor_fusion_node:main',
         ],
     },
 )
