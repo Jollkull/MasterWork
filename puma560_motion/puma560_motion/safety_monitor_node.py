@@ -34,6 +34,33 @@ class SafetyMonitorNode(Node):
         # Человек - вертикально вытянутый объект, поэтому разница высот
         # между звеном и точкой детекции не должна увеличивать дистанцию.
         self.declare_parameter('use_horizontal_distance', True)
+        # Упреждающее срабатывание: учитывается не только текущая,
+        # но и прогнозируемая позиция человека (ISO/TS 15066)
+        self.declare_parameter('use_prediction', True)
+        # Если позиция человека не обновляется дольше этого времени,
+        # считаем, что он покинул зону наблюдения, с
+        self.declare_parameter('human_position_timeout', 1.5)
+        self.declare_parameter(
+            'predicted_position_topic', '/puma/human_position_predicted'
+        )
+
+        # --- Динамический расчёт защитного расстояния (ISO/TS 15066) ---
+        # S = Vh*(Tr+Ts) + Vr*Tr + B + C
+        self.declare_parameter('use_dynamic_zones', True)
+        # Время реакции системы (детекция + принятие решения), с
+        self.declare_parameter('reaction_time', 0.25)
+        # Время срабатывания тормоза контроллера, с
+        self.declare_parameter('brake_time', 0.15)
+        # Замедление робота при торможении, м/с^2
+        self.declare_parameter('robot_deceleration', 2.0)
+        # Суммарная погрешность измерения положения, м
+        self.declare_parameter('sensor_uncertainty', 0.08)
+        # Во сколько раз зона предупреждения шире зоны остановки
+        self.declare_parameter('warn_zone_factor', 2.0)
+        # Границы, ниже/выше которых зона не уходит, м
+        self.declare_parameter('min_stop_distance', 0.15)
+        self.declare_parameter('max_stop_distance', 1.5)
+        self.declare_parameter('human_speed_topic', '/puma/human_speed')
 
         self.world_frame = self.get_parameter('world_frame').value
         self.link_names = self.get_parameter('link_names').value
@@ -48,11 +75,28 @@ class SafetyMonitorNode(Node):
 
         # --- Состояние ---
         self.human_position = None  # (x, y, z) в world_frame
+        self.human_position_time = None
+        self.predicted_position = None
+        self.human_speed = 0.0
+        self.prev_tcp = None
+        self.prev_tcp_time = None
+        self.robot_speed = 0.0
+        self.current_stop_zone = None
+        self.current_warn_zone = None
         self.current_mode = 'SAFE'  # SAFE / SLOW / STOP
 
         # --- Подписки/публикации ---
         self.create_subscription(
             PointStamped, human_topic, self.human_position_callback, 10
+        )
+        self.create_subscription(
+            PointStamped,
+            self.get_parameter('predicted_position_topic').value,
+            self.predicted_callback, 10,
+        )
+        self.create_subscription(
+            Float64, self.get_parameter('human_speed_topic').value,
+            self.human_speed_callback, 10,
         )
         self.status_pub = self.create_publisher(String, '/puma/safety_status', 10)
         scaling_qos = QoSProfile(
@@ -63,6 +107,15 @@ class SafetyMonitorNode(Node):
         self.scaling_pub = self.create_publisher(
             SpeedScalingFactor, '/joint_trajectory_controller/speed_scaling_input', scaling_qos
 )
+        self.stop_zone_pub = self.create_publisher(
+            Float64, '/puma/stop_zone_radius', 10
+        )
+        self.warn_zone_pub = self.create_publisher(
+            Float64, '/puma/warn_zone_radius', 10
+        )
+        self.robot_speed_pub = self.create_publisher(
+            Float64, '/puma/robot_speed', 10
+        )
         self.min_distance_pub = self.create_publisher(
             Float64, '/puma/min_distance', 10
         )
@@ -82,6 +135,64 @@ class SafetyMonitorNode(Node):
 
     def human_position_callback(self, msg: PointStamped):
         self.human_position = (msg.point.x, msg.point.y, msg.point.z)
+        self.human_position_time = self.get_clock().now().nanoseconds * 1e-9
+
+    def human_speed_callback(self, msg: Float64):
+        self.human_speed = max(0.0, msg.data)
+
+    def update_robot_speed(self, tcp_position):
+        """Скорость TCP по смещению между тиками."""
+        now = self.get_clock().now().nanoseconds * 1e-9
+
+        if self.prev_tcp is None or self.prev_tcp_time is None:
+            self.prev_tcp = tcp_position
+            self.prev_tcp_time = now
+            return
+
+        dt = now - self.prev_tcp_time
+        if dt < 1e-3:
+            return
+
+        dist = math.sqrt(
+            sum((tcp_position[i] - self.prev_tcp[i]) ** 2 for i in range(3))
+        )
+        raw_speed = dist / dt
+
+        # Сглаживание, чтобы шум TF не давал выбросов
+        self.robot_speed = 0.7 * self.robot_speed + 0.3 * raw_speed
+        self.prev_tcp = tcp_position
+        self.prev_tcp_time = now
+
+    def compute_protective_distance(self):
+        """Защитное расстояние по ISO/TS 15066."""
+        if not self.get_parameter('use_dynamic_zones').value:
+            return self.distance_stop, self.distance_warn
+
+        tr = self.get_parameter('reaction_time').value
+        ts = self.get_parameter('brake_time').value
+        decel = self.get_parameter('robot_deceleration').value
+        c = self.get_parameter('sensor_uncertainty').value
+
+        # Вклад движения человека за время реакции и торможения
+        sh = self.human_speed * (tr + ts)
+        # Вклад движения робота за время реакции
+        sr = self.robot_speed * tr
+        # Тормозной путь робота
+        ss = (self.robot_speed ** 2) / (2.0 * decel) if decel > 0 else 0.0
+
+        stop_zone = sh + sr + ss + c
+
+        lo = self.get_parameter('min_stop_distance').value
+        hi = self.get_parameter('max_stop_distance').value
+        stop_zone = max(lo, min(hi, stop_zone))
+
+        warn_zone = stop_zone * self.get_parameter('warn_zone_factor').value
+        warn_zone = min(warn_zone, hi * 2.0)
+
+        return stop_zone, warn_zone
+
+    def predicted_callback(self, msg: PointStamped):
+        self.predicted_position = (msg.point.x, msg.point.y, msg.point.z)
 
     def get_link_position(self, link_name: str):
         try:
@@ -116,24 +227,55 @@ class SafetyMonitorNode(Node):
             if pos is not None:
                 link_positions[link] = pos
 
+        tcp = link_positions.get(self.get_parameter('status_text_frame').value)
+        if tcp is not None:
+            self.update_robot_speed(tcp)
+
         self.publish_link_safety_markers(link_positions)
+
+        # Данные устарели - человек вышел из зоны наблюдения
+        if self.human_position is not None and self.human_position_time is not None:
+            age = (self.get_clock().now().nanoseconds * 1e-9
+                   - self.human_position_time)
+            if age > self.get_parameter('human_position_timeout').value:
+                self.get_logger().info(
+                    f'Human position lost ({age:.1f}s without update), '
+                    'returning to SAFE'
+                )
+                self.human_position = None
+                self.human_position_time = None
+                self.predicted_position = None
 
         if self.human_position is None:
             self.publish_mode('SAFE', 1.0, None)
             return
 
+        targets = [self.human_position]
+        if (self.get_parameter('use_prediction').value
+                and self.predicted_position is not None):
+            targets.append(self.predicted_position)
+
         min_dist = None
         for pos in link_positions.values():
-            d = self.distance(pos, self.human_position)
-            if min_dist is None or d < min_dist:
-                min_dist = d
+            for target in targets:
+                d = self.distance(pos, target)
+                if min_dist is None or d < min_dist:
+                    min_dist = d
 
         if min_dist is None:
             return
 
-        if min_dist <= self.distance_stop:
+        stop_zone, warn_zone = self.compute_protective_distance()
+        self.current_stop_zone = stop_zone
+        self.current_warn_zone = warn_zone
+
+        self.stop_zone_pub.publish(Float64(data=float(stop_zone)))
+        self.warn_zone_pub.publish(Float64(data=float(warn_zone)))
+        self.robot_speed_pub.publish(Float64(data=float(self.robot_speed)))
+
+        if min_dist <= stop_zone:
             mode, scale = 'STOP', 0.0
-        elif min_dist <= self.distance_warn:
+        elif min_dist <= warn_zone:
             mode, scale = 'SLOW', 0.3
         else:
             mode, scale = 'SAFE', 1.0
@@ -194,6 +336,8 @@ class SafetyMonitorNode(Node):
 
         if min_dist is not None:
             marker.text += f'\n{min_dist:.2f}m'
+        if self.current_stop_zone is not None:
+            marker.text += f'\nzone {self.current_stop_zone:.2f}m'
 
         marker.color.a = 1.0
         marker.lifetime.sec = 0
@@ -217,7 +361,10 @@ class SafetyMonitorNode(Node):
             warn_marker.pose.position.y = pos[1]
             warn_marker.pose.position.z = pos[2]
             warn_marker.pose.orientation.w = 1.0
-            d_warn = self.distance_warn * 2.0
+            warn_r = (self.current_warn_zone
+                      if self.current_warn_zone is not None
+                      else self.distance_warn)
+            d_warn = warn_r * 2.0
             warn_marker.scale.x = d_warn
             warn_marker.scale.y = d_warn
             warn_marker.scale.z = d_warn
@@ -240,7 +387,10 @@ class SafetyMonitorNode(Node):
             stop_marker.pose.position.y = pos[1]
             stop_marker.pose.position.z = pos[2]
             stop_marker.pose.orientation.w = 1.0
-            d_stop = self.distance_stop * 2.0
+            stop_r = (self.current_stop_zone
+                      if self.current_stop_zone is not None
+                      else self.distance_stop)
+            d_stop = stop_r * 2.0
             stop_marker.scale.x = d_stop
             stop_marker.scale.y = d_stop
             stop_marker.scale.z = d_stop

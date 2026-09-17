@@ -1,0 +1,156 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <model name="human_figure">
+    <static>true</static>
+    <link name="body">
+      <pose>0 0 0.875 0 0 0</pose>
+
+      <inertial>
+        <mass>70.0</mass>
+        <inertia>
+          <ixx>18.0</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>18.0</iyy><iyz>0</iyz>
+          <izz>2.2</izz>
+        </inertia>
+      </inertial>
+
+      <!-- Коллизия: тот же цилиндр, что и раньше.
+           Датчики видят простую форму, алгоритмы не меняются. -->
+
+      <!-- Визуальное представление: силуэт человека из примитивов -->
+
+      <visual name="head">
+        <pose>0 0 0.79 0 0 0</pose>
+        <geometry>
+          <sphere><radius>0.11</radius></sphere>
+        </geometry>
+        <material>
+          <ambient>0.85 0.68 0.55 1</ambient>
+          <diffuse>0.85 0.68 0.55 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="neck">
+        <pose>0 0 0.66 0 0 0</pose>
+        <geometry>
+          <cylinder><radius>0.05</radius><length>0.09</length></cylinder>
+        </geometry>
+        <material>
+          <ambient>0.85 0.68 0.55 1</ambient>
+          <diffuse>0.85 0.68 0.55 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="torso">
+        <pose>0 0 0.38 0 0 0</pose>
+        <geometry>
+          <box><size>0.36 0.20 0.50</size></box>
+        </geometry>
+        <material>
+          <ambient>0.15 0.35 0.70 1</ambient>
+          <diffuse>0.20 0.45 0.85 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="hips">
+        <pose>0 0 0.06 0 0 0</pose>
+        <geometry>
+          <box><size>0.32 0.19 0.20</size></box>
+        </geometry>
+        <material>
+          <ambient>0.20 0.20 0.28 1</ambient>
+          <diffuse>0.25 0.25 0.35 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="arm_left">
+        <pose>0.24 0 0.36 0 0.06 0</pose>
+        <geometry>
+          <cylinder><radius>0.055</radius><length>0.60</length></cylinder>
+        </geometry>
+        <material>
+          <ambient>0.15 0.35 0.70 1</ambient>
+          <diffuse>0.20 0.45 0.85 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="arm_right">
+        <pose>-0.24 0 0.36 0 -0.06 0</pose>
+        <geometry>
+          <cylinder><radius>0.055</radius><length>0.60</length></cylinder>
+        </geometry>
+        <material>
+          <ambient>0.15 0.35 0.70 1</ambient>
+          <diffuse>0.20 0.45 0.85 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="hand_left">
+        <pose>0.26 0 0.04 0 0 0</pose>
+        <geometry>
+          <sphere><radius>0.055</radius></sphere>
+        </geometry>
+        <material>
+          <ambient>0.85 0.68 0.55 1</ambient>
+          <diffuse>0.85 0.68 0.55 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="hand_right">
+        <pose>-0.26 0 0.04 0 0 0</pose>
+        <geometry>
+          <sphere><radius>0.055</radius></sphere>
+        </geometry>
+        <material>
+          <ambient>0.85 0.68 0.55 1</ambient>
+          <diffuse>0.85 0.68 0.55 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="leg_left">
+        <pose>0.10 0 -0.46 0 0 0</pose>
+        <geometry>
+          <cylinder><radius>0.075</radius><length>0.84</length></cylinder>
+        </geometry>
+        <material>
+          <ambient>0.20 0.20 0.28 1</ambient>
+          <diffuse>0.25 0.25 0.35 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="leg_right">
+        <pose>-0.10 0 -0.46 0 0 0</pose>
+        <geometry>
+          <cylinder><radius>0.075</radius><length>0.84</length></cylinder>
+        </geometry>
+        <material>
+          <ambient>0.20 0.20 0.28 1</ambient>
+          <diffuse>0.25 0.25 0.35 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="foot_left">
+        <pose>0.10 0.05 -0.855 0 0 0</pose>
+        <geometry>
+          <box><size>0.11 0.24 0.06</size></box>
+        </geometry>
+        <material>
+          <ambient>0.10 0.10 0.12 1</ambient>
+          <diffuse>0.12 0.12 0.15 1</diffuse>
+        </material>
+      </visual>
+
+      <visual name="foot_right">
+        <pose>-0.10 0.05 -0.855 0 0 0</pose>
+        <geometry>
+          <box><size>0.11 0.24 0.06</size></box>
+        </geometry>
+        <material>
+          <ambient>0.10 0.10 0.12 1</ambient>
+          <diffuse>0.12 0.12 0.15 1</diffuse>
+        </material>
+      </visual>
+
+    </link>
+  </model>
+</sdf>

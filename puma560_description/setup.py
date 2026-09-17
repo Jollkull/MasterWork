@@ -25,6 +25,8 @@ setup(
         # SDF-модели объектов сцены
         (os.path.join('share', package_name, 'models', 'human_dummy'),
             glob('models/human_dummy/*')),
+        (os.path.join('share', package_name, 'models', 'human_figure'),
+            glob('models/human_figure/*')),
 
     ],
     install_requires=['setuptools'],

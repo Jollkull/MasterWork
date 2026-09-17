@@ -46,14 +46,18 @@ class CameraHumanDetector(Node):
         # Камера видит переднюю поверхность объекта; центр глубже на радиус
         self.declare_parameter('object_radius', 0.25)
         # Минимальная площадь контура в пикселях
-        self.declare_parameter('min_contour_area', 300)
+        self.declare_parameter('min_contour_area', 80)
         # Допустимое отношение высоты к ширине контура (человек вытянут вверх)
         self.declare_parameter('min_aspect_ratio', 0.8)
         self.declare_parameter('max_aspect_ratio', 8.0)
         # Размер ядра морфологии
         self.declare_parameter('morph_kernel', 5)
         # Радиус исключения вокруг звеньев робота, м
-        self.declare_parameter('robot_exclusion_radius', 0.4)
+        self.declare_parameter('robot_exclusion_radius', 0.22)
+        # Робот целиком: всё в этом радиусе от базы считается роботом
+        self.declare_parameter('robot_base_frame', 'link1')
+        self.declare_parameter('robot_footprint_radius', 0.0)
+        self.declare_parameter('robot_capsule_radius', 0.25)
         self.declare_parameter(
             'robot_links',
             ['link1', 'link2', 'link3', 'link4', 'link5', 'link6', 'link7', 'tool0'],
@@ -295,20 +299,53 @@ class CameraHumanDetector(Node):
         out.point.z = pz + qw * tz + (qx * ty - qy * tx) + t.z
         return out
 
-    def is_robot(self, point: PointStamped):
-        radius = self.get_parameter('robot_exclusion_radius').value
+    @staticmethod
+    def point_segment_distance(px, py, ax, ay, bx, by):
+        """Расстояние от точки до отрезка."""
+        vx, vy = bx - ax, by - ay
+        wx, wy = px - ax, py - ay
+        seg_len_sq = vx * vx + vy * vy
+        if seg_len_sq < 1e-9:
+            return math.hypot(wx, wy)
+        t = max(0.0, min(1.0, (wx * vx + wy * vy) / seg_len_sq))
+        cx, cy = ax + t * vx, ay + t * vy
+        return math.hypot(px - cx, py - cy)
+
+    def link_world_positions(self):
+        result = []
         for name in self.get_parameter('robot_links').value:
             try:
                 tf = self.tf_buffer.lookup_transform(
                     self.world_frame, name, rclpy.time.Time(),
                     timeout=Duration(seconds=0.05),
                 )
+                result.append((tf.transform.translation.x,
+                               tf.transform.translation.y))
             except Exception:
                 continue
-            dx = point.point.x - tf.transform.translation.x
-            dy = point.point.y - tf.transform.translation.y
-            if math.hypot(dx, dy) <= radius:
+        return result
+
+    def is_robot(self, point: PointStamped):
+        px, py = point.point.x, point.point.y
+        points = self.link_world_positions()
+        if not points:
+            return False
+
+        radius = self.get_parameter('robot_exclusion_radius').value
+        capsule_r = self.get_parameter('robot_capsule_radius').value
+
+        # Капсульная модель: отрезки между соседними звеньями
+        for i in range(len(points) - 1):
+            a, b = points[i], points[i + 1]
+            if self.point_segment_distance(px, py, a[0], a[1],
+                                           b[0], b[1]) <= capsule_r:
                 return True
+
+        # Дополнительно - окрестности самих звеньев
+        for lx, ly in points:
+            if math.hypot(px - lx, py - ly) <= radius:
+                return True
+
         return False
 
     def publish_debug(self, mask, contours):

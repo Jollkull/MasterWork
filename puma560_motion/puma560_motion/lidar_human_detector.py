@@ -25,8 +25,8 @@ class LidarHumanDetector(Node):
         # которого нет в TF-дереве ROS2 - используем имя из URDF
         self.declare_parameter('lidar_frame', 'lidar_link')
         self.declare_parameter('cluster_distance_threshold', 0.15)
-        self.declare_parameter('min_cluster_points', 3)
-        self.declare_parameter('min_object_width', 0.10)
+        self.declare_parameter('min_cluster_points', 2)
+        self.declare_parameter('min_object_width', 0.05)
         self.declare_parameter('max_object_width', 1.20)
         self.declare_parameter('max_detection_range', 8.0)
         self.declare_parameter('publish_marker', True)
@@ -39,7 +39,11 @@ class LidarHumanDetector(Node):
             ['link1', 'link2', 'link3', 'link4', 'link5', 'link6', 'link7', 'tool0'],
         )
         # Кластер ближе этого расстояния к любому звену считается самим роботом, м
-        self.declare_parameter('robot_exclusion_radius', 0.35)
+        self.declare_parameter('robot_exclusion_radius', 0.22)
+        self.declare_parameter('robot_base_frame', 'link1')
+        self.declare_parameter('robot_footprint_radius', 0.0)
+        # Радиус капсулы вокруг отрезков между звеньями, м
+        self.declare_parameter('robot_capsule_radius', 0.22)
         # Максимальный угловой зазор между кластерами для склейки, рад
         self.declare_parameter('merge_angle_gap', 0.35)
         # Максимальная разница дистанций для склейки, м
@@ -189,19 +193,45 @@ class LidarHumanDetector(Node):
         except Exception:
             return None
 
+    @staticmethod
+    def point_segment_distance(px, py, ax, ay, bx, by):
+        """Расстояние от точки (px,py) до отрезка (ax,ay)-(bx,by)."""
+        vx, vy = bx - ax, by - ay
+        wx, wy = px - ax, py - ay
+        seg_len_sq = vx * vx + vy * vy
+
+        if seg_len_sq < 1e-9:
+            return math.hypot(wx, wy)
+
+        t = max(0.0, min(1.0, (wx * vx + wy * vy) / seg_len_sq))
+        cx, cy = ax + t * vx, ay + t * vy
+        return math.hypot(px - cx, py - cy)
+
+    def robot_segments(self):
+        """Отрезки между соседними звеньями (капсульная модель робота)."""
+        names = self.get_parameter('robot_links').value
+        points = []
+        for name in names:
+            pos = self.get_link_position_world(name)
+            if pos is not None:
+                points.append(pos)
+
+        segments = []
+        for i in range(len(points) - 1):
+            segments.append((points[i], points[i + 1]))
+        return segments, points
+
     def reject_robot_clusters(self, clusters):
         """Отбрасывает кластеры, совпадающие со звеньями робота."""
         radius = self.get_parameter('robot_exclusion_radius').value
         link_names = self.get_parameter('robot_links').value
 
-        link_positions = []
-        for name in link_names:
-            pos = self.get_link_position_world(name)
-            if pos is not None:
-                link_positions.append(pos)
+        segments, link_positions = self.robot_segments()
 
         if not link_positions:
             return clusters
+
+        capsule_r = self.get_parameter('robot_capsule_radius').value
 
         kept = []
         for c in clusters:
@@ -218,10 +248,18 @@ class LidarHumanDetector(Node):
                 continue
 
             px, py = world_point.point.x, world_point.point.y
-            is_robot = any(
+            # Капсульная модель: расстояние до отрезков между звеньями
+            near_segment = any(
+                self.point_segment_distance(px, py, a[0], a[1], b[0], b[1])
+                <= capsule_r
+                for a, b in segments
+            )
+            near_point = any(
                 math.hypot(px - lx, py - ly) <= radius
                 for lx, ly in link_positions
             )
+
+            is_robot = near_segment or near_point
             if not is_robot:
                 kept.append(c)
 

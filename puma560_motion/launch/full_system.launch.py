@@ -22,6 +22,10 @@ def generate_launch_description():
         desc_share, 'models', 'human_dummy', 'model.sdf'
     )
 
+    human_visual = os.path.join(
+        desc_share, 'models', 'human_figure', 'model.sdf'
+    )
+
     motion_share = get_package_share_directory('puma560_motion')
     rviz_config = os.path.join(motion_share, 'config', 'full_system.rviz')
 
@@ -87,6 +91,26 @@ def generate_launch_description():
         ],
     )
 
+    # --- Визуальная фигура человека (без коллизии, только для отображения) ---
+    spawn_human_visual = TimerAction(
+        period=8.5,
+        actions=[
+            Node(
+                package='ros_gz_sim',
+                executable='create',
+                name='spawn_human_visual',
+                output='screen',
+                arguments=[
+                    '-file', human_visual,
+                    '-name', 'human_visual',
+                    '-x', human_x,
+                    '-y', human_y,
+                    '-z', '0.0',
+                ],
+            )
+        ],
+    )
+
     # --- Детектор человека по лидару ---
     detector = TimerAction(
         period=10.0,
@@ -129,6 +153,20 @@ def generate_launch_description():
         ],
     )
 
+    # --- Прогнозирование движения человека ---
+    predictor = TimerAction(
+        period=11.5,
+        actions=[
+            Node(
+                package='puma560_motion',
+                executable='motion_predictor_node',
+                name='motion_predictor_node',
+                output='screen',
+                parameters=[{'use_sim_time': True}],
+            )
+        ],
+    )
+
     # --- Монитор безопасности ---
     safety_monitor = TimerAction(
         period=10.0,
@@ -165,9 +203,11 @@ def generate_launch_description():
         gazebo,
         lidar_frame_bridge,
         spawn_human,
+        spawn_human_visual,
         detector,
         camera_detector,
         fusion,
+        predictor,
         safety_monitor,
         rviz,
     ])
